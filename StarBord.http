@@ -1,0 +1,6 @@
+@StarBord_HostAddress = http://localhost:5050
+
+GET {{StarBord_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
