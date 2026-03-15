@@ -1,4 +1,5 @@
-
+using Microsoft.EntityFrameworkCore;
+using StarBord.Data;
 namespace StarBord
 {
     public class Program
@@ -8,6 +9,9 @@ namespace StarBord
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+
+            builder.Services.AddDbContext<StarBordDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
