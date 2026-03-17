@@ -3,6 +3,7 @@ using StarBord.Models;
 using System;
 using Microsoft.EntityFrameworkCore;
 using StarBord.Data;
+using StarBord.DTOS;
 
 namespace StarBord.Services
 {
@@ -15,23 +16,44 @@ namespace StarBord.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<User>> GetAllUsersAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<GetUserDto>> GetAllUsersAsync(CancellationToken cancellationToken)
         {
-            return await _context.Users.AsNoTracking().ToListAsync(cancellationToken);
+            var users = await _context.Users.AsNoTracking().ToListAsync(cancellationToken);
+            return users.Select(u => new GetUserDto
+            {
+                Username = u.Username,
+                Email = u.Email,
+            });
         }
 
-        public async Task<User?> GetUserByIdAsync(Guid id,CancellationToken cancellationToken)
+        public async Task<GetUserDto?> GetUserByIdAsync(Guid id,CancellationToken cancellationToken)
         {
-            return await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+            var user = await _context.Users.AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new GetUserDto
+                {
+                    Username = u.Username,
+                    Email = u.Email,
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+            return user;
+
+
         }
 
-        public async Task<User> CreateUserAsync(User user,CancellationToken cancellationToken)
+        public async Task<User> CreateUserAsync(CreateUserDto createUserDto,CancellationToken cancellationToken)
         {
-            user.Id = Guid.NewGuid();
-            user.CreatedAt = DateTime.UtcNow;
+           var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = createUserDto.Username,
+                Email = createUserDto.Email,
+                PasswordHash = createUserDto.Password, // In production, hash the password before storing
+               CreatedAt = DateTime.UtcNow
+            };
             _context.Users.Add(user);
             await _context.SaveChangesAsync(cancellationToken);
-            return user;
+            return user;    
         }
     }
 }

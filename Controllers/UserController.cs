@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StarBord.Services.IService;
-using StarBord.Models;  
+using StarBord.Models;
+using StarBord.DTOS;
 namespace StarBord.Controllers
 {
     [ApiController]
@@ -17,7 +18,7 @@ namespace StarBord.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetAllUsers(CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<GetUserDto>>> GetAllUsers(CancellationToken cancellationToken)
         {
             try
             {
@@ -33,7 +34,7 @@ namespace StarBord.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUserById(Guid id, CancellationToken cancellationToken)
+        public async Task<ActionResult<GetUserDto>> GetUserById(Guid id, CancellationToken cancellationToken)
         {
             try
             {
@@ -53,11 +54,11 @@ namespace StarBord.Controllers
 
         [HttpPost]
 
-        public async Task<ActionResult<User>> CreateNewUser(User user, CancellationToken cancellationToken)
+        public async Task<ActionResult<User>> CreateNewUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
         {
             try
             {
-                var createdUser = await _userService.CreateUserAsync(user, cancellationToken);
+                var createdUser = await _userService.CreateUserAsync(createUserDto, cancellationToken);
                 return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
             }
             catch (Exception ex)
