@@ -2,8 +2,10 @@
 using StarBord.Services.IService;
 using StarBord.Models;
 using StarBord.DTOS;
+using Microsoft.AspNetCore.Authorization;
 namespace StarBord.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
@@ -53,7 +55,7 @@ namespace StarBord.Controllers
         }
 
         [HttpPost]
-
+        [AllowAnonymous]
         public async Task<ActionResult<User>> CreateNewUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
         {
             try
