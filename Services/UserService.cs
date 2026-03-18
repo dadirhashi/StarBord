@@ -26,10 +26,10 @@ namespace StarBord.Services
             });
         }
 
-        public async Task<GetUserDto?> GetUserByIdAsync(Guid id,CancellationToken cancellationToken)
+        public async Task<GetUserDto?> GetUserByEmailAsync(string email,CancellationToken cancellationToken)
         {
             var user = await _context.Users.AsNoTracking()
-                .Where(u => u.Id == id)
+                .Where(u => u.Email == email)
                 .Select(u => new GetUserDto
                 {
                     Username = u.Username,
@@ -48,8 +48,8 @@ namespace StarBord.Services
                 Id = Guid.NewGuid(),
                 Username = createUserDto.Username,
                 Email = createUserDto.Email,
-                PasswordHash = createUserDto.Password, // In production, hash the password before storing
-               CreatedAt = DateTime.UtcNow
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password),  
+                CreatedAt = DateTime.UtcNow
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync(cancellationToken);

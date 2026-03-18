@@ -6,7 +6,7 @@ namespace StarBord.Services.IService
     public interface IUserService
     {
         Task<IEnumerable<GetUserDto>> GetAllUsersAsync(CancellationToken cancellationToken);
-        Task<GetUserDto?> GetUserByIdAsync(Guid id, CancellationToken cancellationToken);
+        Task<GetUserDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken);
         Task<User> CreateUserAsync(CreateUserDto createUserDto, CancellationToken cancellationToken);
     }
 }

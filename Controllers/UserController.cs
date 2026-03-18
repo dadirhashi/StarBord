@@ -2,8 +2,10 @@
 using StarBord.Services.IService;
 using StarBord.Models;
 using StarBord.DTOS;
+using Microsoft.AspNetCore.Authorization;
 namespace StarBord.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
@@ -33,12 +35,12 @@ namespace StarBord.Controllers
             }
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<GetUserDto>> GetUserById(Guid id, CancellationToken cancellationToken)
+        [HttpGet("{email}")]
+        public async Task<ActionResult<GetUserDto>> GetUserByEmail(string email, CancellationToken cancellationToken)
         {
             try
             {
-                var user = await _userService.GetUserByIdAsync(id, cancellationToken);
+                var user = await _userService.GetUserByEmailAsync(email, cancellationToken);
                 if (user == null)
                 {
                     return NotFound();
@@ -53,13 +55,15 @@ namespace StarBord.Controllers
         }
 
         [HttpPost]
-
+        [AllowAnonymous]
         public async Task<ActionResult<User>> CreateNewUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
         {
             try
             {
                 var createdUser = await _userService.CreateUserAsync(createUserDto, cancellationToken);
-                return CreatedAtAction(nameof(GetUserById), new { id = createdUser.Id }, createdUser);
+
+                // Return the created user with a 201 Created status code and a Location header pointing to the new resource
+                return CreatedAtAction(nameof(GetUserByEmail), new { email = createdUser.Email }, createdUser);
             }
             catch (Exception ex)
             {
