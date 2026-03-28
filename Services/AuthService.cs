@@ -31,6 +31,8 @@ namespace StarBord.Services
             if (user == null)
             {
                  Console.WriteLine("User could not befound");
+                
+                return null;
             } ;
             
 

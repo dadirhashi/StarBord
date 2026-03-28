@@ -12,8 +12,8 @@ using StarBord.Data;
 namespace StarBord.Migrations
 {
     [DbContext(typeof(StarBordDbContext))]
-    [Migration("20260314162930_initalcreate")]
-    partial class initalcreate
+    [Migration("20260326152858_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,7 +31,7 @@ namespace StarBord.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Adress")
+                    b.Property<string>("Address")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -163,7 +163,7 @@ namespace StarBord.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("User");
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("StarBord.Models.Business", b =>

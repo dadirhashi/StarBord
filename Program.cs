@@ -4,6 +4,8 @@ using StarBord.Data;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
+using StarBord.Services.IService;
+using StarBord.Services;
 namespace StarBord
 {
     public class Program
@@ -17,8 +19,9 @@ namespace StarBord
             builder.Services.AddDbContext<StarBordDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             
-            builder.Services.AddScoped<Services.IService.IUserService, Services.UserService>();
-            builder.Services.AddScoped<Services.IService.IAuthResponse, Services.AuthService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IAuthResponse, AuthService>();
+            builder.Services.AddScoped<IBusinessService, Businessservice>();
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var ket = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);

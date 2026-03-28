@@ -41,19 +41,23 @@ namespace StarBord.Services
 
         }
 
-        public async Task<User> CreateUserAsync(CreateUserDto createUserDto,CancellationToken cancellationToken)
+        public async Task<GetUserDto> CreateUserAsync(CreateUserDto createUserDto, CancellationToken cancellationToken)
         {
-           var user = new User
+            var user = new User
             {
                 Id = Guid.NewGuid(),
                 Username = createUserDto.Username,
                 Email = createUserDto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password),  
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password),
                 CreatedAt = DateTime.UtcNow
             };
             _context.Users.Add(user);
             await _context.SaveChangesAsync(cancellationToken);
-            return user;    
+            return new GetUserDto
+            {
+                Username = user.Username,
+                Email = user.Email
+            };
         }
     }
 }

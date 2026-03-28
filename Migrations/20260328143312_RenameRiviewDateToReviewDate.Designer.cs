@@ -12,8 +12,8 @@ using StarBord.Data;
 namespace StarBord.Migrations
 {
     [DbContext(typeof(StarBordDbContext))]
-    [Migration("20260317042956_user")]
-    partial class user
+    [Migration("20260328143312_RenameRiviewDateToReviewDate")]
+    partial class RenameRiviewDateToReviewDate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,7 +31,7 @@ namespace StarBord.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Adress")
+                    b.Property<string>("Address")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -126,12 +126,12 @@ namespace StarBord.Migrations
                     b.Property<int>("Rating")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("ReviewDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ReviewText")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("RiviewDate")
-                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
