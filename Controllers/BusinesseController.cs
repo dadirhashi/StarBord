@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using StarBord.DTOS;
 using StarBord.Services.IService;
 using System.Linq;
@@ -6,6 +7,9 @@ using System.Security.Claims;
 
 namespace StarBord.Controllers
 {
+    [Authorize]
+    [ApiController]
+    [Route("api/[Controller]")]
     public class BusinesseController : ControllerBase
     {
         private readonly IBusinessService _businessService;
@@ -24,6 +28,11 @@ namespace StarBord.Controllers
             {
                 var busnisse = await _businessService.GetAllBusinessAsync(cancellationToken);
                 return Ok(busnisse);
+
+                if (busnisse == null)
+                {
+                    Console.WriteLine("There is no business registerd yet");
+                }
             }
             catch (Exception ex)
             {
@@ -59,6 +68,11 @@ namespace StarBord.Controllers
         {
             try
             {
+                //foreach (var claim in User.Claims)
+                //{
+                //    Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
+                //}
+
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var createdBusiness = await _businessService.CreateBusinessAsync(userId, businessDto, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = createdBusiness.Id }, createdBusiness);
