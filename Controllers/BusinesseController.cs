@@ -29,10 +29,7 @@ namespace StarBord.Controllers
                 var busnisse = await _businessService.GetAllBusinessAsync(cancellationToken);
                 return Ok(busnisse);
 
-                if (busnisse == null)
-                {
-                    Console.WriteLine("There is no business registerd yet");
-                }
+              
             }
             catch (Exception ex)
             {
