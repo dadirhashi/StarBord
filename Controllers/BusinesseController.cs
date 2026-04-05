@@ -65,10 +65,6 @@ namespace StarBord.Controllers
         {
             try
             {
-                //foreach (var claim in User.Claims)
-                //{
-                //    Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
-                //}
 
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var createdBusiness = await _businessService.CreateBusinessAsync(userId, businessDto, cancellationToken);

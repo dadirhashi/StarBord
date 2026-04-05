@@ -17,7 +17,7 @@ namespace StarBord.Services
             _logger = logger;
         }
 
-        public async Task<GetReviewDto> CreateReview(CreateReviewDto createReviewDto, CancellationToken cancellationToken)
+        public async Task<GetReviewDto> CreateReviewAsync(CreateReviewDto createReviewDto, CancellationToken cancellationToken)
         {
             var review = new Review
             {
@@ -45,7 +45,7 @@ namespace StarBord.Services
             };
         }
 
-        public async Task<IEnumerable<GetReviewDto>> GetReviewsByBusinessId(Guid businessId, CancellationToken cancellationToken)
+        public async Task<IEnumerable<GetReviewDto>> GetReviewsByBusinessIdAsync(Guid businessId, CancellationToken cancellationToken)
         {
             var reviews = await _context.Reviews
                 .Where(r => r.BusinessId == businessId)
@@ -63,7 +63,7 @@ namespace StarBord.Services
             return reviews;
         }
 
-        public async Task<GetReviewDto?> GetReviewById(Guid reviewId, CancellationToken cancellationToken)
+        public async Task<GetReviewDto?> GetReviewByIdAsync(Guid reviewId, CancellationToken cancellationToken)
         {
             var review = await _context.Reviews
                 .Where(r => r.Id == reviewId)
@@ -76,13 +76,14 @@ namespace StarBord.Services
                     Platform = r.Platform,
                     ReviewDate = r.ReviewDate,
                     ExternalReviewId = r.ExternalReviewId
-                }).AsNoTracking().ToListAsync(cancellationToken);
-            return review.FirstOrDefault();
+                }).AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+            return review;
+
         }
 
-        public async Task<GetReviewDto> UpdateReview(Guid reviewId, CreateReviewDto updateReviewDto, CancellationToken cancellationToken)
+        public async Task<GetReviewDto> UpdateReviewAsync(Guid reviewId, CreateReviewDto updateReviewDto, CancellationToken cancellationToken)
         {
-            var review = await _context.Reviews.FindAsync(reviewId, cancellationToken);
+            var review = await _context.Reviews.FindAsync(new object[] { reviewId }, cancellationToken);
             if (review == null)
             {
                 _logger.LogError($"Review with id {reviewId} not found for update");
@@ -108,12 +109,12 @@ namespace StarBord.Services
             };
         }
 
-        public async Task<bool> DeleteReview(Guid reviewId, CancellationToken cancellationToken)
+        public async Task<bool> DeleteReviewAsync(Guid reviewId, CancellationToken cancellationToken)
         {
-            var review = await _context.Reviews.FindAsync(reviewId, cancellationToken);
+            var review = await _context.Reviews.FindAsync(new object[] { reviewId }, cancellationToken);
             if (review == null)
             {
-                _logger.LogError($"Review with id {reviewId} not found for deletion");
+                _logger.LogError("Review with id {ReviewId} not found for update", reviewId);
                 return false;
             }
             _context.Reviews.Remove(review);
