@@ -22,6 +22,7 @@ namespace StarBord
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthResponse, AuthService>();
             builder.Services.AddScoped<IBusinessService, Businessservice>();
+            builder.Services.AddScoped<IResponseService, ResponseService>();
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var ket = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
