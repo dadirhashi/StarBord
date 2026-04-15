@@ -1,4 +1,5 @@
-﻿namespace StarBord.Services.IService
+﻿using StarBord.DTOS;
+namespace StarBord.Services.IService
 {
     public interface IResponseService
     {
