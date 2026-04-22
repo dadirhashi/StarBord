@@ -26,6 +26,17 @@ namespace StarBord
             builder.Services.AddScoped<IResponseService, ResponseService>();
             builder.Services.AddScoped<IPlatformTokenService, PlatformTokenService>();
             builder.Services.AddScoped<IGoogleReviewService, MockGoogleReviewService>();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var ket = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
@@ -100,6 +111,8 @@ namespace StarBord
                     );
                 app.MapOpenApi();
             }
+
+            app.UseCors("AllowFrontend");
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
