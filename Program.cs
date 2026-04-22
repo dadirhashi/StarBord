@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using StarBord.Services.IService;
 using StarBord.Services;
+using StarBord.Middleware;
 namespace StarBord
 {
     public class Program
@@ -23,6 +24,18 @@ namespace StarBord
             builder.Services.AddScoped<IAuthResponse, AuthService>();
             builder.Services.AddScoped<IBusinessService, Businessservice>();
             builder.Services.AddScoped<IResponseService, ResponseService>();
+            builder.Services.AddScoped<IPlatformTokenService, PlatformTokenService>();
+            builder.Services.AddScoped<IGoogleReviewService, MockGoogleReviewService>();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var ket = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
@@ -82,6 +95,8 @@ namespace StarBord
             builder.Services.AddOpenApi();
 
             var app = builder.Build();
+            
+            app.UseMiddleware<GlobalExceptionMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -96,6 +111,8 @@ namespace StarBord
                     );
                 app.MapOpenApi();
             }
+
+            app.UseCors("AllowFrontend");
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
