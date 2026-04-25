@@ -29,7 +29,7 @@ namespace StarBord.Services
         public async Task<GetUserDto?> GetUserByEmailAsync(string email,CancellationToken cancellationToken)
         {
             var user = await _context.Users.AsNoTracking()
-                .Where(u => u.Email == email)
+                .Where(u => u.Email == email )
                 .Select(u => new GetUserDto
                 {
                     Username = u.Username,
