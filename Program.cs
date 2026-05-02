@@ -22,7 +22,7 @@ namespace StarBord
             
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthResponse, AuthService>();
-            builder.Services.AddScoped<IBusinessService, Businessservice>();
+            builder.Services.AddScoped<IBusinessService, BusinessService>();
             builder.Services.AddScoped<IResponseService, ResponseService>();
             builder.Services.AddScoped<IPlatformTokenService, PlatformTokenService>();
             builder.Services.AddScoped<IGoogleReviewService, MockGoogleReviewService>();
