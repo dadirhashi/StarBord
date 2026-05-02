@@ -26,6 +26,7 @@ namespace StarBord
             builder.Services.AddScoped<IResponseService, ResponseService>();
             builder.Services.AddScoped<IPlatformTokenService, PlatformTokenService>();
             builder.Services.AddScoped<IGoogleReviewService, MockGoogleReviewService>();
+            builder.Services.AddScoped<IReviewService, ReviewService>();
 
             builder.Services.AddCors(options =>
             {

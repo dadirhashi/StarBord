@@ -18,26 +18,17 @@ namespace StarBord.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<GetBusinessDto>> GetAllBusinessAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<GetBusinessDto>> GetAllBusinessAsync(Guid userId, CancellationToken cancellationToken)
         {
-            try
-            {
-                var businesses = await _context.Businesses.Select(b => new GetBusinessDto
-                {
-                    Id = b.Id,
-                    UserId = b.UserId,
-                    Name = b.Name,
-                    Address = b.Address,
-                    CreatedAt = b.CreatedAt
-                }).ToListAsync(cancellationToken);
-                return businesses;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving businesses.");
-
-                throw new Exception("An error occurred while retrieving businesses.", ex);
-            }
+        var businesses = await _context.Businesses.Where(b => b.UserId == userId).Select(b => new GetBusinessDto
+        {
+            Id = b.Id,
+            UserId = b.UserId,
+            Name = b.Name,
+            Address = b.Address,
+            CreatedAt = b.CreatedAt
+        }).ToListAsync(cancellationToken);
+        return businesses;
         }
 
         public async Task<GetBusinessDto?> GetBusinessByIdAsync(Guid id, CancellationToken cancellationToken)

@@ -10,11 +10,11 @@ namespace StarBord.Controllers
     [Authorize]
     [ApiController]
     [Route("api/[Controller]")]
-    public class BusinesseController : ControllerBase
+    public class BusinessesController : ControllerBase
     {
         private readonly IBusinessService _businessService;
-        private readonly ILogger<BusinesseController> _logger;
-        public BusinesseController(IBusinessService businessService, ILogger<BusinesseController> logger)
+        private readonly ILogger<BusinessesController> _logger;
+        public BusinessesController(IBusinessService businessService, ILogger<BusinessesController> logger)
         {
             _businessService = businessService;
             _logger = logger;
@@ -24,19 +24,9 @@ namespace StarBord.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
         {
-            try
-            {
-                var busnisse = await _businessService.GetAllBusinessAsync(cancellationToken);
-                return Ok(busnisse);
-
-              
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while fetching businesses.");
-                return StatusCode(500, "An unexpected error occurred.");
-
-            }
+          var userId =Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+          var businesses = await _businessService.GetAllBusinessAsync(userId, cancellationToken);
+          return Ok(businesses);
         }
 
         [HttpGet("{id}")]
