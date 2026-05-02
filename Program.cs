@@ -38,7 +38,7 @@ namespace StarBord
             });
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
-            var ket = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
             builder.Services.AddAuthentication(options =>
             {
@@ -55,7 +55,7 @@ namespace StarBord
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = jwtSettings["Issuer"],
                         ValidAudience = jwtSettings["Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(ket),
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
 
                     };
                 });
@@ -113,7 +113,7 @@ namespace StarBord
             }
 
             app.UseCors("AllowFrontend");
-
+           
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();

@@ -30,8 +30,6 @@ namespace StarBord.Services
 
             if (user == null)
             {
-                 throw new Exception("User not found");
-
                 return null;
             } ;
             
@@ -39,7 +37,7 @@ namespace StarBord.Services
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
             if (!isPasswordValid)
             {
-                throw new Exception("Invalid password");
+                return null;
             }
 
             var token = GenerateJwtToken(user);
