@@ -32,46 +32,31 @@ namespace StarBord.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
-            try
-            {
                 var business = await _businessService.GetBusinessByIdAsync(id, cancellationToken);
                 if (business == null)
                 {
                     return NotFound();
                 }
                 return Ok(business);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"An error occurred while fetching business with ID: {id}");
-                return StatusCode(500, "An unexpected error occurred.");
-
-            }
 
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(CreateBusinessDto businessDto, CancellationToken cancellationToken)
         {
-            try
-            {
 
                 var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
                 var createdBusiness = await _businessService.CreateBusinessAsync(userId, businessDto, cancellationToken);
                 return CreatedAtAction(nameof(GetById), new { id = createdBusiness.Id }, createdBusiness);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while creating a business.");
-                return StatusCode(500, "An unexpected error occurred.");
-            }
+            
+           
         }
 
         [HttpDelete("{id}")]
         public async Task <IActionResult> Delete (Guid id, CancellationToken cancellationToken)
         {
-            try
-            {
+           
+            
             var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var result = await _businessService.DeleteBusinessAsync(id, userId, cancellationToken);
                 
@@ -81,12 +66,7 @@ namespace StarBord.Controllers
                     return NotFound();
                 }
                 return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"An error occurred while deleting business with ID: {id}");
-                return StatusCode(500, "An unexpected error occurred.");
-            }
+           
         }
     }
 }
