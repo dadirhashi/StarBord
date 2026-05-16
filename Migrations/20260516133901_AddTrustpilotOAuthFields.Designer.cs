@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StarBord.Data;
 
@@ -11,9 +12,11 @@ using StarBord.Data;
 namespace StarBord.Migrations
 {
     [DbContext(typeof(StarBordDbContext))]
-    partial class StarBordDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260516133901_AddTrustpilotOAuthFields")]
+    partial class AddTrustpilotOAuthFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

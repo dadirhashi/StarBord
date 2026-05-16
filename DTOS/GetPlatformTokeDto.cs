@@ -5,6 +5,7 @@
         public Guid Id { get; set; }
         public Guid BusinessId { get; set; }
         public string Platform { get; set; }
+        public string ExternalBusinessId { get; set; }
         public DateTime ExpiresAt { get; set; }
     }
 }
