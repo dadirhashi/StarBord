@@ -134,9 +134,67 @@ namespace StarBord.Services
 
         public async Task<string> EnsureValidAccessTokenAsync(Guid businessId)
         {
-            // TODO implement token refresh logic
-            await Task.CompletedTask;
-            return "";
+            var token = await _db.PlatformTokens
+                .FirstOrDefaultAsync(t => t.BusinessId == businessId && t.Platform == "Trustpilot");
+
+            if (token == null)
+            {
+                throw new InvalidOperationException(
+                    $"No Trustpilot connection found for business {businessId}. " +
+                    "The business owner needs to connect their Trustpilot account first.");
+            }
+
+            // Use a 1-minute safety buffer — refresh BEFORE the token actually expires
+            // so we don't get caught mid-API-call by an expiry.
+            if (token.ExpiresAt > DateTime.UtcNow.AddMinutes(1))
+            {
+                return token.AccessToken;
+            }
+
+            _logger.LogInformation(
+                "Trustpilot token for business {BusinessId} expired or near expiry, refreshing",
+                businessId);
+
+            var http = _httpClientFactory.CreateClient();
+            var basicAuth = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{_clientId}:{_clientSecret}"));
+            http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Basic", basicAuth);
+
+            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = token.RefreshToken
+            });
+
+            var response = await http.PostAsync(
+                $"{_baseUrl}/oauth/oauth-business-users-for-applications/refresh",
+                form);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogError(
+                    "Trustpilot token refresh failed for business {BusinessId}: {Status} {Body}",
+                    businessId, response.StatusCode, body);
+                throw new InvalidOperationException(
+                    $"Failed to refresh Trustpilot token for business {businessId}");
+            }
+
+            var tokenResp = await response.Content.ReadFromJsonAsync<TrustpilotTokenResponse>()
+                ?? throw new InvalidOperationException("Invalid refresh response from Trustpilot");
+
+            token.AccessToken = tokenResp.AccessToken;
+            token.RefreshToken = tokenResp.RefreshToken;
+            token.ExpiresAt = DateTime.UtcNow.AddSeconds(tokenResp.ExpiresIn);
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Refreshed Trustpilot token for business {BusinessId}, new expiry {ExpiresAt}",
+                businessId, token.ExpiresAt);
+
+            return token.AccessToken;
         }
 
         private class TrustpilotTokenResponse
