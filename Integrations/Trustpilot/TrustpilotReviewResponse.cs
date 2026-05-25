@@ -1,6 +1,10 @@
-﻿namespace StarBord.Integrations.Trustpilot
+﻿using System.Text.Json.Serialization;
+
+namespace StarBord.Integrations.Trustpilot
 {
-    public class TrustpilotReviewResponse
+    public class TrustpilotReviewsResponse
     {
+        [JsonPropertyName("reviews")]
+        public List<TrustpilotReviewDto> Reviews { get; set; } = new();
     }
 }

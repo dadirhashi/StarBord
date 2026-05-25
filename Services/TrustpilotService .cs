@@ -1,11 +1,10 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using StarBord.Data;
 using StarBord.Models;
-
+using StarBord.Integrations.Trustpilot;
 
 namespace StarBord.Services
 {
@@ -119,19 +118,6 @@ namespace StarBord.Services
             _logger.LogInformation("Saved Trustpilot token for business {BusinessId}", businessId);
         }
 
-        public async Task<int> SyncReviewsAsync(Guid businessId)
-        {
-            // TODO implement
-            await Task.CompletedTask;
-            return 0;
-        }
-
-        public async Task PostReplyAsync(Guid businessId, string externalReviewId, string message)
-        {
-            // TODO implement
-            await Task.CompletedTask;
-        }
-
         public async Task<string> EnsureValidAccessTokenAsync(Guid businessId)
         {
             var token = await _db.PlatformTokens
@@ -144,8 +130,7 @@ namespace StarBord.Services
                     "The business owner needs to connect their Trustpilot account first.");
             }
 
-            // Use a 1-minute safety buffer — refresh BEFORE the token actually expires
-            // so we don't get caught mid-API-call by an expiry.
+            // 1-minute safety buffer — refresh BEFORE the token actually expires
             if (token.ExpiresAt > DateTime.UtcNow.AddMinutes(1))
             {
                 return token.AccessToken;
@@ -197,12 +182,78 @@ namespace StarBord.Services
             return token.AccessToken;
         }
 
-        private class TrustpilotTokenResponse
+        public async Task<int> SyncReviewsAsync(Guid businessId)
         {
-            [JsonPropertyName("access_token")] public string AccessToken { get; set; } = "";
-            [JsonPropertyName("refresh_token")] public string RefreshToken { get; set; } = "";
-            [JsonPropertyName("expires_in")] public int ExpiresIn { get; set; }
-            [JsonPropertyName("token_type")] public string TokenType { get; set; } = "";
+            // Get a valid token — refreshes automatically if expired
+            var accessToken = await EnsureValidAccessTokenAsync(businessId);
+
+            // Look up the Trustpilot Business Unit ID for this business
+            var token = await _db.PlatformTokens
+                .FirstAsync(t => t.BusinessId == businessId && t.Platform == "Trustpilot");
+
+            // Fallback for mock testing — in real Trustpilot this would always be populated
+            var businessUnitId = string.IsNullOrEmpty(token.ExternaalBussinessId)
+                ? "mock-business-unit"
+                : token.ExternaalBussinessId;
+
+            // Call Trustpilot's reviews endpoint with the access token
+            var http = _httpClientFactory.CreateClient();
+            http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await http.GetAsync(
+                $"{_baseUrl}/v1/private/business-units/{businessUnitId}/reviews");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogError(
+                    "Failed to fetch Trustpilot reviews for business {BusinessId}: {Status} {Body}",
+                    businessId, response.StatusCode, body);
+                throw new InvalidOperationException("Failed to fetch reviews from Trustpilot");
+            }
+
+            var data = await response.Content.ReadFromJsonAsync<TrustpilotReviewsResponse>()
+                ?? throw new InvalidOperationException("Invalid reviews response from Trustpilot");
+
+            // Loop through and save any reviews we haven't seen before
+            var importedCount = 0;
+            foreach (var tpReview in data.Reviews)
+            {
+                var alreadyImported = await _db.Reviews.AnyAsync(r =>
+                    r.Platform == "Trustpilot" &&
+                    r.ExternalReviewId == tpReview.Id);
+
+                if (alreadyImported) continue;
+
+                var review = new Review
+                {
+                    Id = Guid.NewGuid(),
+                    BusinessId = businessId,
+                    Platform = "Trustpilot",
+                    ExternalReviewId = tpReview.Id,
+                    Rating = tpReview.Stars,
+                    ReviewText = string.IsNullOrEmpty(tpReview.Title)
+                        ? tpReview.Text
+                        : $"{tpReview.Title}\n\n{tpReview.Text}",
+                    ReviewDate = tpReview.CreatedAt
+                };
+
+                _db.Reviews.Add(review);
+                importedCount++;
+            }
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Synced {Count} new Trustpilot reviews for business {BusinessId}",
+                importedCount, businessId);
+
+            return importedCount;
         }
+
+        // Still a stub — we'll implement this next, after sync testing
+        public Task PostReplyAsync(Guid businessId, string externalReviewId, string message)
+            => throw new NotImplementedException();
     }
 }
