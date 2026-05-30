@@ -34,7 +34,7 @@ namespace StarBord.Controllers
         public async Task<IActionResult> Callback(
             [FromQuery] string code,
             [FromQuery] string state)
-        {
+         {
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
                 return BadRequest("Missing code or state");
 
@@ -50,6 +50,22 @@ namespace StarBord.Controllers
             {
                 _logger.LogError(ex, "Trustpilot callback failed for {BusinessId}", businessId);
                 return Redirect("/dashboard?trustpilot=error");
+            }
+        }
+
+        [HttpPost("sync/{businessId:guid}")]
+        [Authorize]
+        public async Task<IActionResult> Sync(Guid businessId)
+        {
+            try
+            {
+                var count = await _trustpilot.SyncReviewsAsync(businessId);
+                return Ok(new { synced = count });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Trustpilot sync failed for {BusinessId}", businessId);
+                return StatusCode(500, "Sync failed");
             }
         }
     }
