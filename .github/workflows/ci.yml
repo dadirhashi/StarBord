@@ -14,7 +14,6 @@ jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,10 +24,13 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Restore dependencies
+        working-directory: ./StarBord
         run: dotnet restore
 
       - name: Build
+        working-directory: ./StarBord
         run: dotnet build --no-restore --configuration Release
 
       - name: Run tests
+        working-directory: ./StarBord
         run: dotnet test --no-build --configuration Release --verbosity normal
