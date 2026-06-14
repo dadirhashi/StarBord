@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
-using StarBord.Data;
+﻿using StarBord.Data;
 using StarBord.DTOS;
 using StarBord.Models;
 using StarBord.Services.IService;
+using Microsoft.EntityFrameworkCore;
 
 namespace StarBord.Services
 {
