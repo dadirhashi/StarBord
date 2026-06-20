@@ -10,13 +10,16 @@ namespace StarBord.Controllers
     {
         private readonly ITrustpilotService _trustpilot;
         private readonly ILogger<TrustpilotAuthController> _logger;
+        private readonly IConfiguration _configuration;
 
         public TrustpilotAuthController(
             ITrustpilotService trustpilot,
-            ILogger<TrustpilotAuthController> logger)
+            ILogger<TrustpilotAuthController> logger,
+            IConfiguration configuration)
         {
             _trustpilot = trustpilot;
             _logger = logger;
+            _configuration = configuration;
         }
 
         // Frontend calls this to get the URL it should redirect the user to
@@ -32,24 +35,27 @@ namespace StarBord.Controllers
         // Trustpilot redirects the user's browser back here after they authorize
         [HttpGet("callback")]
         public async Task<IActionResult> Callback(
-            [FromQuery] string code,
-            [FromQuery] string state)
-         {
+     [FromQuery] string code,
+     [FromQuery] string state)
+        {
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
                 return BadRequest("Missing code or state");
 
             if (!Guid.TryParse(state, out var businessId))
                 return BadRequest("Invalid state");
 
+            var frontendUrl = _configuration["Frontend:BaseUrl"]
+                ?? throw new InvalidOperationException("Frontend:BaseUrl not configured");
+
             try
             {
                 await _trustpilot.HandleOAuthCallbackAsync(businessId, code);
-                return Redirect("/dashboard?trustpilot=connected");
+                return Redirect($"{frontendUrl}/dashboard?trustpilot=connected");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Trustpilot callback failed for {BusinessId}", businessId);
-                return Redirect("/dashboard?trustpilot=error");
+                return Redirect($"{frontendUrl}/dashboard?trustpilot=error");
             }
         }
 
