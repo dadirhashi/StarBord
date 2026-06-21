@@ -215,6 +215,8 @@ namespace StarBord.Services
 
             var data = await response.Content.ReadFromJsonAsync<TrustpilotReviewsResponse>()
                 ?? throw new InvalidOperationException("Invalid reviews response from Trustpilot");
+            _logger.LogInformation("Fetched {Count} reviews from Trustpilot for business {BusinessId}",
+                data.Reviews?.Count ?? 0, businessId);
 
             // Loop through and save any reviews we haven't seen before
             var importedCount = 0;
@@ -222,6 +224,7 @@ namespace StarBord.Services
             {
                 var alreadyImported = await _db.Reviews.AnyAsync(r =>
                     r.Platform == "Trustpilot" &&
+                    r.BusinessId == businessId &&
                     r.ExternalReviewId == tpReview.Id);
 
                 if (alreadyImported) continue;
