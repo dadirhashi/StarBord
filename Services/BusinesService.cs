@@ -7,11 +7,11 @@ using StarBord.Models;
 
 namespace StarBord.Services
 {
-    public class BusinessService : IBusinessService
+    public class BusinesService : IBusinessService
     {
         private readonly StarBordDbContext _context;
 
-        public BusinessService(StarBordDbContext context)
+        public BusinesService(StarBordDbContext context)
         {
             _context = context;
         }
