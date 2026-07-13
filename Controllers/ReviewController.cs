@@ -1,97 +1,59 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StarBord.Application.Reviews;
 using StarBord.DTOS;
-using StarBord.Services.IService;
+
+namespace StarBord.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/reviews")]
 [Authorize]
-public class ReviewsController : ControllerBase
+public class ReviewController : ControllerBase
 {
-    private readonly IReviewService _reviewService;
-    private readonly ILogger<ReviewsController> _logger;
+    private readonly IMediator _mediator;
 
-    public ReviewsController(IReviewService reviewService, ILogger<ReviewsController> logger)
+    public ReviewController(IMediator mediator)
     {
-        _reviewService = reviewService;
-        _logger = logger;
+        _mediator = mediator;
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateReview(CreateReviewDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<GetReviewDto>> CreateReview(
+        CreateReviewDto createReviewDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var review = await _reviewService.CreateReviewAsync(dto, cancellationToken);
-            return CreatedAtAction(nameof(GetReview), new { id = review.Id }, review);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating review");
-            return StatusCode(500, "An error occurred while creating the review");
-        }
+        var result = await _mediator.Send(new CreateReviewCommand(createReviewDto), cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { reviewId = result.Id }, result);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetReview(Guid id, CancellationToken cancellationToken)
+    [HttpGet("business/{businessId:guid}")]
+    public async Task<ActionResult<IEnumerable<GetReviewDto>>> GetByBusiness(
+        Guid businessId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var review = await _reviewService.GetReviewByIdAsync(id, cancellationToken);
-            if (review == null) return NotFound();
-            return Ok(review);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving review {ReviewId}", id);
-            return StatusCode(500, "An error occurred while retrieving the review");
-        }
+        var result = await _mediator.Send(new GetReviewsByBusinessIdQuery(businessId), cancellationToken);
+        return Ok(result);
     }
 
-    [HttpGet("business/{businessId}")]
-    public async Task<IActionResult> GetReviewsByBusiness(Guid businessId, CancellationToken cancellationToken)
+    [HttpGet("{reviewId:guid}")]
+    public async Task<ActionResult<GetReviewDto>> GetById(
+        Guid reviewId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var reviews = await _reviewService.GetReviewsByBusinessIdAsync(businessId, cancellationToken);
-            return Ok(reviews);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving reviews for business {BusinessId}", businessId);
-            return StatusCode(500, "An error occurred while retrieving reviews");
-        }
+        var result = await _mediator.Send(new GetReviewByIdQuery(reviewId), cancellationToken);
+        return result is null ? NotFound() : Ok(result);
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateReview(Guid id, CreateReviewDto dto, CancellationToken cancellationToken)
+    [HttpPut("{reviewId:guid}")]
+    public async Task<ActionResult<GetReviewDto>> Update(
+        Guid reviewId, CreateReviewDto dto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var review = await _reviewService.UpdateReviewAsync(id, dto, cancellationToken);
-            if (review == null) return NotFound();
-            return Ok(review);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating review {ReviewId}", id);
-            return StatusCode(500, "An error occurred while updating the review");
-        }
+        var result = await _mediator.Send(new UpdateReviewCommand(reviewId, dto), cancellationToken);
+        return Ok(result);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteReview(Guid id, CancellationToken cancellationToken)
+    [HttpDelete("{reviewId:guid}")]
+    public async Task<IActionResult> Delete(Guid reviewId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _reviewService.DeleteReviewAsync(id, cancellationToken);
-            if (!result) return NotFound();
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting review {ReviewId}", id);
-            return StatusCode(500, "An error occurred while deleting the review");
-        }
+        var deleted = await _mediator.Send(new DeleteReviewCommand(reviewId), cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

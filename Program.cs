@@ -29,6 +29,7 @@ namespace StarBord
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<ITrustpilotService, TrustpilotService>();
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
             builder.Services.AddCors(options =>
             {
