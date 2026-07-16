@@ -12,6 +12,5 @@ namespace StarBord.DTOS
         [Required]
         [MaxLength(500)]
         public string Address { get; set; }
-        public Guid UserId { get; internal set; }
     }
 }

@@ -3,7 +3,7 @@ using StarBord.DTOS;
 using StarBord.Data;
 namespace StarBord.Application.Businesses
 {
-    public record UpdateBusinessCommand(CreateBusinessDto Business, Guid BusinessId) : IRequest<GetBusinessDto>;
+    public record UpdateBusinessCommand(Guid BusinessId, Guid UserId, CreateBusinessDto Business) : IRequest<GetBusinessDto>;
     public class UpdateBusinessCommandHandler : IRequestHandler<UpdateBusinessCommand, GetBusinessDto>
     {
         private readonly StarBordDbContext _context;    
@@ -15,7 +15,11 @@ namespace StarBord.Application.Businesses
             var business = await _context.Businesses.FindAsync( request.BusinessId, cancellationToken);
             if (business == null)
             {
-                throw new Exception($"Business with ID {request.BusinessId} not found.");
+                throw new KeyNotFoundException($"Business with ID {request.BusinessId} not found.");
+            }
+            if (business.UserId != request.UserId)
+            {
+                throw new KeyNotFoundException($"User with ID {request.UserId} is not authorized to update this business.");
             }
             business.Name = dto.Name;
             business.Address = dto.Address;

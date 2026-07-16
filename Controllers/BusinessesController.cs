@@ -1,72 +1,62 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StarBord.Application.Businesses;
 using StarBord.DTOS;
-using StarBord.Services.IService;
-using System.Linq;
 using System.Security.Claims;
 
 namespace StarBord.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[Controller]")]
+    [Route("api/businesses")]
     public class BusinessesController : ControllerBase
     {
-        private readonly IBusinessService _businessService;
-        private readonly ILogger<BusinessesController> _logger;
-        public BusinessesController(IBusinessService businessService, ILogger<BusinessesController> logger)
-        {
-            _businessService = businessService;
-            _logger = logger;
+       private readonly IMediator _mediator;
 
-        }
+       public BusinessesController(IMediator mediator)
+       {
+           _mediator = mediator;
+       }
+        private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         [HttpGet]
-        public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+        public async Task<ActionResult<List<GetBusinessDto>>> GetAllBusiness(CancellationToken cancellationToken)
         {
-          var userId =Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-          var businesses = await _businessService.GetAllBusinessAsync(userId, cancellationToken);
-          return Ok(businesses);
+            var result = await _mediator.Send(new GetAllBusinessByUserIdQuery(CurrentUserId), cancellationToken);
+            return Ok(result);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+        [HttpGet("{BusinessId:guid}")]
+        public async Task<ActionResult<GetBusinessDto?>> GetBusinessById(Guid BusinessId, CancellationToken cancellationToken)
         {
-                var business = await _businessService.GetBusinessByIdAsync(id, cancellationToken);
-                if (business == null)
-                {
-                    return NotFound();
-                }
-                return Ok(business);
-
+            var result = await _mediator.Send(new GetBusinessByIdQuery(BusinessId), cancellationToken);
+            return result != null ? Ok(result) : NotFound();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateBusinessDto businessDto, CancellationToken cancellationToken)
+        public async Task<ActionResult<GetBusinessDto>> CreateBusiness (CreateBusinessDto createBusinessDto, CancellationToken cancellationToken)
         {
-
-                var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var createdBusiness = await _businessService.CreateBusinessAsync(userId, businessDto, cancellationToken);
-                return CreatedAtAction(nameof(GetById), new { id = createdBusiness.Id }, createdBusiness);
-            
-           
+            var result = await _mediator.Send(new CreateBusinessCommand(CurrentUserId, createBusinessDto), cancellationToken);
+            return CreatedAtAction(nameof(GetBusinessById), new { BusinessId = result.Id }, result);
         }
 
-        [HttpDelete("{id}")]
-        public async Task <IActionResult> Delete (Guid id, CancellationToken cancellationToken)
+        [HttpPut("{BusinessId:guid}")]
+        public async Task<ActionResult<GetBusinessDto?>> UpdateBusiness (Guid BusinessId, CreateBusinessDto createBusinessDto, CancellationToken cancellationToken)
         {
-           
-            
-            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            var result = await _businessService.DeleteBusinessAsync(id, userId, cancellationToken);
-                
-                if (!result)
-                {
-                    Console.WriteLine($"Failed to delete business with ID: {id}");
-                    return NotFound();
-                }
-                return NoContent();
-           
+            var result = await _mediator.Send(new UpdateBusinessCommand(BusinessId, CurrentUserId, createBusinessDto), cancellationToken);
+            return Ok(result);
         }
+
+        [HttpDelete("{BusinessId:guid}")]
+
+        public async Task<IActionResult> DeleteBusiness (Guid BusinessId, CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new DeleteBusinessCommand(BusinessId, CurrentUserId), cancellationToken);
+            return result ? NoContent() : NotFound();
+        }
+
+
+
     }
 }

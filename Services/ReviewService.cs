@@ -6,6 +6,8 @@ using StarBord.Models;
 
 namespace StarBord.Services
 {
+    // SUPERSEDED by Application/Reviews CQRS handlers. Scheduled for removal in step 5 (cleanup).
+    // Kept temporarily as reference during CQRS pilot. Do not add new logic here.
     public class ReviewService : IReviewService
     {
         private readonly StarBordDbContext _context;

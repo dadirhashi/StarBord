@@ -4,7 +4,7 @@ using StarBord.Data;
 using StarBord.Models;
 namespace StarBord.Application.Businesses
 {
-    public record CreateBusinessCommand(CreateBusinessDto Business) : IRequest<GetBusinessDto>;
+    public record CreateBusinessCommand(Guid UserId, CreateBusinessDto Business) : IRequest<GetBusinessDto>;
 
     public class CreateBusinessCommandHandler : IRequestHandler<CreateBusinessCommand, GetBusinessDto>
     {
@@ -18,7 +18,7 @@ namespace StarBord.Application.Businesses
             var business = new Business
             {
                 Id = Guid.NewGuid(),
-                UserId = dto.UserId,
+                UserId = request.UserId,
                 Name = dto.Name,
                 Address = dto.Address,
                 CreatedAt = DateTime.UtcNow
