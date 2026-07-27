@@ -3,6 +3,7 @@ using StarBord.Data;
 using StarBord.DTOS;
 using StarBord.Models;  
 using Microsoft.EntityFrameworkCore;
+using StarBord.Services;
 
 namespace StarBord.Application.Responses
 {
@@ -10,7 +11,15 @@ namespace StarBord.Application.Responses
     public class RespondToReviewCommandHandler :IRequestHandler<RespondToReviewCommand, GetResponseDto>
     {
         private readonly StarBordDbContext _context;
-        public RespondToReviewCommandHandler(StarBordDbContext context) => _context = context;
+        private readonly ILogger<RespondToReviewCommandHandler> _logger;
+        private ITrustpilotService _trustpilotService;
+
+        public RespondToReviewCommandHandler(StarBordDbContext context, ILogger<RespondToReviewCommandHandler> logger, ITrustpilotService trustpilotService)
+        {
+            _context = context;
+            _logger = logger;
+            _trustpilotService = trustpilotService;
+        }
 
         public async Task<GetResponseDto> Handle(
             RespondToReviewCommand request, CancellationToken cancellationToken)

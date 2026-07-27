@@ -21,8 +21,6 @@ namespace StarBord.Application.Responses
             }
             else if (response.RespondedBy != request.RespondedBy)
             {
-
-
                 throw new UnauthorizedAccessException($"Response with ID {request.ResponseId} does not belong to User with ID {request.RespondedBy}.");
             }
             response.ResponseText = request.Response.ResponseText;

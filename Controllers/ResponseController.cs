@@ -1,110 +1,58 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using StarBord.Application.Responses;
 using StarBord.DTOS;
-using StarBord.Services.IService;
 using System.Security.Claims;
 
+
+namespace StarBord.Controllers;
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/responses")]
 [Authorize]
 public class ResponsesController : ControllerBase
 {
-    private readonly IResponseService _responseService;
-    private readonly ILogger<ResponsesController> _logger;
+    private readonly IMediator _mediator;
+    public ResponsesController(IMediator mediator) => _mediator = mediator;
 
-    public ResponsesController(IResponseService responseService, ILogger<ResponsesController> logger)
-    {
-        _responseService = responseService;
-        _logger = logger;
-    }
+    private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpPost]
-    public async Task<IActionResult> CreateResponse(CreateResponseDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<GetResponseDto>> CreateResponse(CreateResponseDto dto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var userId = GetUserIdFromToken();
-            if (userId == null) return Unauthorized();
-
-            var response = await _responseService.CreateResponseAsync(dto, userId.Value, cancellationToken);
-            return CreatedAtAction(nameof(GetResponse), new { id = response.Id }, response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating response");
-            return StatusCode(500, "An error occurred while creating the response");
-        }
+        var createResponse = await _mediator.Send(new RespondToReviewCommand(dto.ReviewId,CurrentUserId, dto), cancellationToken);
+        return CreatedAtAction(nameof(GetResponse), new { responseId = createResponse.Id }, createResponse);
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetResponse(Guid id, CancellationToken cancellationToken)
+    [HttpGet("{responseId:guid}")]
+    public async Task<ActionResult<GetResponseDto>> GetResponse(Guid responseId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var response = await _responseService.GetResponseByIdAsync(id, cancellationToken);
-            if (response == null) return NotFound();
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving response {ResponseId}", id);
-            return StatusCode(500, "An error occurred while retrieving the response");
-        }
+        var response = await _mediator.Send(new GetResponseByIdQuery(responseId), cancellationToken);
+        return response is null ? NotFound() : Ok(response);
+
     }
 
-    [HttpGet("review/{reviewId}")]
-    public async Task<IActionResult> GetResponseByReview(Guid reviewId, CancellationToken cancellationToken)
+    [HttpGet("review/{reviewId:guid}")]
+    public async Task<ActionResult<GetResponseDto>> GetResponseByReview(Guid reviewId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var response = await _responseService.GetResponseByReviewIdAsync(reviewId, cancellationToken);
-            if (response == null) return NotFound();
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving response for review {ReviewId}", reviewId);
-            return StatusCode(500, "An error occurred while retrieving the response");
-        }
+        var response = await _mediator.Send(new GetResponseByReviewIdQuery(reviewId), cancellationToken);
+        return response is null ? NotFound() : Ok(response);
+
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateResponse(Guid id, CreateResponseDto dto, CancellationToken cancellationToken)
+    [HttpPut("{responseId:guid}")]
+    public async Task<ActionResult<GetResponseDto>> UpdateResponse(Guid responseId, CreateResponseDto dto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var response = await _responseService.UpdateResponseAsync(id, dto, cancellationToken);
-            if (response == null) return NotFound();
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating response {ResponseId}", id);
-            return StatusCode(500, "An error occurred while updating the response");
-        }
+        var updatedResponse = await _mediator.Send(new UpdateResponseCommand(responseId, CurrentUserId, dto), cancellationToken);
+        return Ok(updatedResponse);
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteResponse(Guid id, CancellationToken cancellationToken)
+    [HttpDelete("{deleteId:guid}")]
+    public async Task<IActionResult> DeleteResponse(Guid deleteId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await _responseService.DeleteResponseAsync(id, cancellationToken);
-            if (!result) return NotFound();
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting response {ResponseId}", id);
-            return StatusCode(500, "An error occurred while deleting the response");
-        }
+        var result = await _mediator.Send(new DeleteResponseCommand(deleteId), cancellationToken);
+        return result ? NoContent() : NotFound();
     }
 
-    private Guid? GetUserIdFromToken()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (Guid.TryParse(userIdClaim, out var userId))
-            return userId;
-        return null;
-    }
+   
 }
