@@ -47,6 +47,24 @@ namespace StarBord.Application.Responses
             await _context.Responses.AddAsync(response, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
+            if (string.IsNullOrWhiteSpace(review.ExternalReviewId))
+            {
+                _logger.LogWarning($"Review with ID {request.ReviewId} does not have an ExternalReviewId. Skipping Trustpilot response.");
+            }
+            else
+            {
+                try
+                {
+                    await _trustpilotService.PostReplyAsync(review.BusinessId, review.ExternalReviewId, response.ResponseText);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to post response to Trustpilot for Review ID {request.ReviewId}.");
+                }
+
+
+            }
+
             return new GetResponseDto
             {
                 Id = response.Id,
@@ -55,7 +73,6 @@ namespace StarBord.Application.Responses
                 ResponseAt = response.ResponseAt,
                 RespondedBy = response.RespondedBy
             };
-
         }
     
     }
