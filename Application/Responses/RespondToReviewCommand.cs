@@ -4,6 +4,7 @@ using StarBord.DTOS;
 using StarBord.Models;  
 using Microsoft.EntityFrameworkCore;
 using StarBord.Services;
+using StarBord.Application.Exceptions;
 
 namespace StarBord.Application.Responses
 {
@@ -32,7 +33,7 @@ namespace StarBord.Application.Responses
             var alreadyResponded = await _context.Responses.AnyAsync(r => r.ReviewId == request.ReviewId, cancellationToken);
             if (alreadyResponded)
             {
-                throw new InvalidOperationException($"Review with ID {request.ReviewId} has already been responded to.");
+                throw new ConflictException($"Review with ID {request.ReviewId} has already been responded to.");
             }
 
             var response = new Response

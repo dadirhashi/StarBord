@@ -16,6 +16,9 @@ namespace StarBord.Controllers
 
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
+        /* Currently, This endpoint is only accessible to users with the "Admin" role 
+         * and currently there is no way to assign roles to users, so this endpoint is not accessible to any user at the moment. Same goes for the other email endpoint as well. */
         public async Task<ActionResult<List<GetUserDto>>> GetAllUsers(CancellationToken cancellationToken)
         {
             var users = await _mediator.Send(new GetAllUsersQuery(), cancellationToken);
@@ -23,6 +26,8 @@ namespace StarBord.Controllers
         }
 
         [HttpGet("{email}")]
+        [Authorize(Roles = "Admin")]
+       
         public async Task<ActionResult<GetUserDto?>> GetUserByEmail( string email, CancellationToken cancellationToken)
         {
             var user = await _mediator.Send(new GetUserByEmailQuery(email), cancellationToken);

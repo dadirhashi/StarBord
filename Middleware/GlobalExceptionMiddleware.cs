@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using StarBord.Application.Exceptions;
 
 namespace StarBord.Middleware
 {
@@ -29,6 +30,11 @@ namespace StarBord.Middleware
             {
                 _logger.LogWarning(ex, "Unauthorized access attempt");
                 await WriteResponseAsync(context, HttpStatusCode.Unauthorized, "Unauthorized");
+            }
+            catch (ConflictException ex)
+            {
+                _logger.LogWarning(ex, "Conflict occurred");
+                await WriteResponseAsync(context, HttpStatusCode.Conflict, ex.Message);
             }
             catch (Exception ex)
             {

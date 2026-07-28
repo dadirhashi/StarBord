@@ -265,8 +265,11 @@ namespace StarBord.Services
             return importedCount;
         }
 
-        // Post a reply to a specific Trustpilot review.
-        // Keyed on the Trustpilot review id, not our local PK.
+
+            // endpoint requires JSON body with { authorBusinessUserId, message } — this sends
+            // form-urlencoded with message only. Needs form→JSON + capturing the business user id
+            // in the OAuth flow. Works against the mock only. See issue #<nr>. 
+
         public async Task PostReplyAsync(Guid businessId, string externalReviewId, string message)
         {
             // Same token flow as everything else — refreshes automatically if needed.
