@@ -20,15 +20,12 @@ namespace StarBord
             builder.Services.AddDbContext<StarBordDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
             
-            builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthResponse, AuthService>();
-            builder.Services.AddScoped<IBusinessService, BusinessService>();
-            builder.Services.AddScoped<IResponseService, ResponseService>();
             builder.Services.AddScoped<IPlatformTokenService, PlatformTokenService>();
             builder.Services.AddScoped<IGoogleReviewService, MockGoogleReviewService>();
-            builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<ITrustpilotService, TrustpilotService>();
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
             builder.Services.AddCors(options =>
             {

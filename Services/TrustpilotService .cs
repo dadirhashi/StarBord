@@ -1,10 +1,10 @@
 ﻿using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using StarBord.Data;
 using StarBord.Models;
 using StarBord.Integrations.Trustpilot;
+
 
 namespace StarBord.Services
 {
@@ -20,12 +20,12 @@ namespace StarBord.Services
         private readonly string _clientSecret;
 
         public TrustpilotService(
-            StarBordDbContext db,
+            StarBordDbContext dbContext,
             IHttpClientFactory httpClientFactory,
             IConfiguration config,
             ILogger<TrustpilotService> logger)
         {
-            _db = db;
+            _db = dbContext;
             _httpClientFactory = httpClientFactory;
             _config = config;
             _logger = logger;
@@ -140,9 +140,19 @@ namespace StarBord.Services
                 "Trustpilot token for business {BusinessId} expired or near expiry, refreshing",
                 businessId);
 
+            // Skapar en HttpClient instans från IHttpClientFactory.
+            // Den används för att göra HTTP anrop till Trustpilot API.
             var http = _httpClientFactory.CreateClient();
+
+            // Basic Auth kräver att man skickar "clientId:clientSecret" som en Base64 kodad sträng.
+            // Detta är applikationens identitet mot Trustpilot (inte en användare).
+            // Trustpilot använder detta för att verifiera att det är en registrerad app som begär en token.
             var basicAuth = Convert.ToBase64String(
                 Encoding.UTF8.GetBytes($"{_clientId}:{_clientSecret}"));
+
+            // Lägger till Authorization headern i formatet:
+            // Authorization: Basic <base64(clientId:clientSecret)>
+            // Detta gör att Trustpilot kan autentisera applikationen och ge tillbaka en access token.
             http.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Basic", basicAuth);
 
@@ -255,8 +265,42 @@ namespace StarBord.Services
             return importedCount;
         }
 
-        // Still a stub — we'll implement this next, after sync testing
-        public Task PostReplyAsync(Guid businessId, string externalReviewId, string message)
-            => throw new NotImplementedException();
+
+            // endpoint requires JSON body with { authorBusinessUserId, message } — this sends
+            // form-urlencoded with message only. Needs form→JSON + capturing the business user id
+            // in the OAuth flow. Works against the mock only. See issue #<nr>. 
+
+        public async Task PostReplyAsync(Guid businessId, string externalReviewId, string message)
+        {
+            // Same token flow as everything else — refreshes automatically if needed.
+            var accessToken = await EnsureValidAccessTokenAsync(businessId);
+
+            var http = _httpClientFactory.CreateClient();
+            http.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["message"] = message
+            });
+
+            var response = await http.PostAsync(
+                $"{_baseUrl}/v1/private/reviews/{externalReviewId}/reply",
+                form);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogError(
+                    "Failed to post Trustpilot reply for review {ExternalReviewId} (business {BusinessId}): {Status} {Body}",
+                    externalReviewId, businessId, response.StatusCode, body);
+                throw new InvalidOperationException(
+                    $"Failed to post reply to Trustpilot review {externalReviewId}");
+            }
+
+            _logger.LogInformation(
+                "Posted Trustpilot reply for review {ExternalReviewId} (business {BusinessId})",
+                externalReviewId, businessId);
+        }
     }
 }

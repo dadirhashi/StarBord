@@ -1,76 +1,48 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using StarBord.Services.IService;
-using StarBord.Models;
 using StarBord.DTOS;
 using Microsoft.AspNetCore.Authorization;
+using MediatR;
+using StarBord.Application.Users;
 namespace StarBord.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/user")]
     public class UserController : ControllerBase
     {
-        private readonly IUserService _userService;
-        private readonly ILogger<UserController> _logger;
+        private readonly IMediator _mediator;   
 
-        public UserController(IUserService userService, ILogger<UserController> logger)
-        {
-            _userService = userService;
-            _logger = logger;
-        }
+        public UserController (IMediator mediator) => _mediator = mediator;
+
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GetUserDto>>> GetAllUsers(CancellationToken cancellationToken)
+        [Authorize(Roles = "Admin")]
+        /* Currently, This endpoint is only accessible to users with the "Admin" role 
+         * and currently there is no way to assign roles to users, so this endpoint is not accessible to any user at the moment. Same goes for the other email endpoint as well. */
+        public async Task<ActionResult<List<GetUserDto>>> GetAllUsers(CancellationToken cancellationToken)
         {
-            try
-            {
-                var users = await _userService.GetAllUsersAsync(cancellationToken);
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-
-               _logger.LogError(ex, "An error occurred while retrieving users.");
-                return StatusCode(500, "Server error occurred while retrieving users.");
-            }
+            var users = await _mediator.Send(new GetAllUsersQuery(), cancellationToken);
+            return Ok(users);
         }
 
         [HttpGet("{email}")]
-        public async Task<ActionResult<GetUserDto>> GetUserByEmail(string email, CancellationToken cancellationToken)
+        [Authorize(Roles = "Admin")]
+       
+        public async Task<ActionResult<GetUserDto?>> GetUserByEmail( string email, CancellationToken cancellationToken)
         {
-            try
-            {
-                var user = await _userService.GetUserByEmailAsync(email, cancellationToken);
-                if (user == null)
-                {
-                    return NotFound();
-                }
-                return Ok(user);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving the user.");
-                return StatusCode(500, "Server error occurred while retrieving the user.");
-            }
+            var user = await _mediator.Send(new GetUserByEmailQuery(email), cancellationToken);
+            return user is null ? NotFound() : Ok(user);
+
+
         }
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<ActionResult<User>> CreateNewUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
+        public async Task<ActionResult<GetUserDto>> CreateNewUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
         {
-            try
-            {
-                var createdUser = await _userService.CreateUserAsync(createUserDto, cancellationToken);
-
-                // Return the created user with a 201 Created status code and a Location header pointing to the new resource
-                return CreatedAtAction(nameof(GetUserByEmail), new { email = createdUser.Email }, createdUser);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while creating the user.");
-                return StatusCode(500, "Server error occurred while creating the user.");
-            }
-
+            var user = await _mediator.Send(new CreateUserCommand(createUserDto), cancellationToken);
+            return CreatedAtAction(nameof(GetUserByEmail), new { email = user.Email }, user);
         }
+
     }
 }
