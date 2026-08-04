@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using StarBord.Services.IService;
 using StarBord.Services;
 using StarBord.Middleware;
+
 namespace StarBord
 {
     public class Program
@@ -38,7 +39,13 @@ namespace StarBord
             });
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+            var jwtKey = jwtSettings["Key"];
+
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                throw new Exception("JWT Key is not configured (look in user secrets). ");
+            }
+            var key = Encoding.UTF8.GetBytes(jwtKey);
 
             builder.Services.AddAuthentication(options =>
             {

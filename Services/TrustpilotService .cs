@@ -99,6 +99,7 @@ namespace StarBord.Services
                 existing.AccessToken = tokenResp.AccessToken;
                 existing.RefreshToken = tokenResp.RefreshToken;
                 existing.ExpiresAt = DateTime.UtcNow.AddSeconds(tokenResp.ExpiresIn);
+                existing.AuthorBusinessUserId = "mock-user-123"; // Real value must be entered manually by the business owner from trustpilot dashboard.
             }
             else
             {
@@ -110,7 +111,8 @@ namespace StarBord.Services
                     AccessToken = tokenResp.AccessToken,
                     RefreshToken = tokenResp.RefreshToken,
                     ExpiresAt = DateTime.UtcNow.AddSeconds(tokenResp.ExpiresIn),
-                    ExternaalBussinessId = ""  // populated later when we fetch business unit info
+                    ExternaalBussinessId = "",  // populated later when we fetch business unit info
+                    AuthorBusinessUserId = "mock-user-123"
                 });
             }
 
@@ -199,7 +201,7 @@ namespace StarBord.Services
 
             // Look up the Trustpilot Business Unit ID for this business
             var token = await _db.PlatformTokens
-                .FirstAsync(t => t.BusinessId == businessId && t.Platform == "Trustpilot");
+                .FirstOrDefaultAsync(t => t.BusinessId == businessId && t.Platform == "Trustpilot");
 
             // Fallback for mock testing — in real Trustpilot this would always be populated
             var businessUnitId = string.IsNullOrEmpty(token.ExternaalBussinessId)
@@ -223,6 +225,8 @@ namespace StarBord.Services
                 throw new InvalidOperationException("Failed to fetch reviews from Trustpilot");
             }
 
+            // Deserialize trustpilot's response into our DTO and log the number of reviews fetched
+            // If the response is null, throw an exception to indicate an invalid response
             var data = await response.Content.ReadFromJsonAsync<TrustpilotReviewsResponse>()
                 ?? throw new InvalidOperationException("Invalid reviews response from Trustpilot");
             _logger.LogInformation("Fetched {Count} reviews from Trustpilot for business {BusinessId}",
@@ -266,28 +270,46 @@ namespace StarBord.Services
         }
 
 
-            // endpoint requires JSON body with { authorBusinessUserId, message } — this sends
-            // form-urlencoded with message only. Needs form→JSON + capturing the business user id
-            // in the OAuth flow. Works against the mock only. See issue #<nr>. 
 
         public async Task PostReplyAsync(Guid businessId, string externalReviewId, string message)
         {
-            // Same token flow as everything else — refreshes automatically if needed.
+            var token = await _db.PlatformTokens
+                .FirstOrDefaultAsync(t => t.BusinessId == businessId && t.Platform == "Trustpilot")
+                ?? throw new InvalidOperationException(
+                    $"No Trustpilot connection found for business {businessId}. " +
+                    "The business owner needs to connect their Trustpilot account first.");
+
+            if (string.IsNullOrWhiteSpace(token.AuthorBusinessUserId))
+            {
+                throw new InvalidOperationException(
+                    $"Trustpilot AuthorBusinessUserId not set for business {businessId}. " +
+                    "The business owner needs to connect their Trustpilot account first.");
+            }
+
+
+            // Gets a valid access token, if it is not valid for ex like if the token is expired it renews it using the EnsureValidAccessTokenAsync method below. 
             var accessToken = await EnsureValidAccessTokenAsync(businessId);
 
+            // Create an HttpClient instance to make the POST request to Trustpilot's reply endpoint.
             var http = _httpClientFactory.CreateClient();
             http.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var form = new FormUrlEncodedContent(new Dictionary<string, string>
+
+            // Prepare the payload for the POST request, which includes the AuthorBusinessUserId and the reply message.
+            // This payload is sent as JSON in the body of the request.
+            var payload = new
             {
-                ["message"] = message
-            });
+                authorBusinessUserId = token.AuthorBusinessUserId,
+                message
+            };
 
-            var response = await http.PostAsync(
+            // Here we make the actual POST request to Trustpilot's API to post the reply to the specified review.
+            // URL has to match the Trustpilot API endpoint for replying to reviews, which includes the externalReviewId.
+            // URL is built using the base URL and the specific endpoint for replying to reviews.
+            var response = await http.PostAsJsonAsync(
                 $"{_baseUrl}/v1/private/reviews/{externalReviewId}/reply",
-                form);
-
+                payload);
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();
