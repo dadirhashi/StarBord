@@ -13,12 +13,15 @@ namespace StarBord
     {
         public static void Main(string[] args)
         {
+
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
 
             builder.Services.AddDbContext<StarBordDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             
             builder.Services.AddScoped<IAuthResponse, AuthService>();
             builder.Services.AddScoped<IPlatformTokenService, PlatformTokenService>();
