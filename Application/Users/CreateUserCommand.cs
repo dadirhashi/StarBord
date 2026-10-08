@@ -1,4 +1,6 @@
 ﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
+using StarBord.Application.Exceptions;
 using StarBord.Data;
 using StarBord.DTOS;
 using StarBord.Models;
@@ -14,6 +16,14 @@ namespace StarBord.Application.Users
 
         public async Task<GetUserDto> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
+            var email = request.UserDto.Email.Trim().ToLowerInvariant();
+
+            var emailTaken = await _context.Users
+            .AnyAsync(u => u.Email.ToLower() == email, cancellationToken);
+
+            if (emailTaken)
+            throw new ConflictExecption("An account with this email already exists");
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
