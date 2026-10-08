@@ -22,7 +22,7 @@ namespace StarBord.Application.Users
             .AnyAsync(u => u.Email.ToLower() == email, cancellationToken);
 
             if (emailTaken)
-            throw new ConflictExecption("An account with this email already exists");
+            throw new ConflictException("An account with this email already exists");
 
             var user = new User
             {
