@@ -13,13 +13,13 @@ namespace StarBord
     {
         public static void Main(string[] args)
         {
-
+            // Npgsql kräver annars DateTime med Kind=Utc; detta behåller samma beteende som med SQL Server
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
+            // PostgreSQL istället för SQL Server. Connection string kommer från miljövariabeln
+            // ConnectionStrings__DefaultConnection i docker-compose (aldrig hårdkodad i koden).
             builder.Services.AddDbContext<StarBordDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
             
@@ -62,7 +62,6 @@ namespace StarBord
 
                     };
                 });
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
@@ -98,10 +97,11 @@ namespace StarBord
             builder.Services.AddOpenApi();
 
             var app = builder.Build();
-            
+
+            ApplyDatabaseMigrations(app);
+
             app.UseMiddleware<GlobalExceptionMiddleware>();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -117,12 +117,47 @@ namespace StarBord
 
             app.UseCors("AllowFrontend");
            
-            app.UseHttpsRedirection();
+            // I containern körs bara HTTP bakom nginx, så ingen https-redirect där.
+            // DOTNET_RUNNING_IN_CONTAINER sätts automatiskt av Microsofts images.
+            if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
+            {
+                app.UseHttpsRedirection();
+            }
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
 
+            // Health endpoint. "instance" = containerns hostname, så man ser vilken
+            // replika som svarade när api är skalad (docker compose up --scale api=3).
+            app.MapGet("/api/health", () => Results.Ok(new
+            {
+                status = "ok",
+                instance = Environment.MachineName
+            }));
+
             app.Run();
+        }
+
+        // Skapar/uppdaterar databasschemat vid start. Försöker igen om databasen inte är redo än.
+        private static void ApplyDatabaseMigrations(WebApplication app)
+        {
+            var logger = app.Logger;
+            for (var attempt = 1; attempt <= 10; attempt++)
+            {
+                try
+                {
+                    using var scope = app.Services.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<StarBordDbContext>();
+                    db.Database.Migrate();
+                    logger.LogInformation("Database is ready");
+                    return;
+                }
+                catch (Exception ex) when (attempt < 10)
+                {
+                    logger.LogWarning(ex, "Database not ready (attempt {Attempt}/10), retrying in 3s", attempt);
+                    Thread.Sleep(TimeSpan.FromSeconds(3));
+                }
+            }
         }
     }
 }
