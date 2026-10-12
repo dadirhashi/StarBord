@@ -10,6 +10,7 @@ namespace StarBord.Data
         {
         }
 
+        public DbSet<User> Users { get; set; }
         public DbSet<Business> Businesses { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Response> Responses { get; set; }

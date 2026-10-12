@@ -1,0 +1,48 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using StarBord.DTOS;
+using Microsoft.AspNetCore.Authorization;
+using MediatR;
+using StarBord.Application.Users;
+namespace StarBord.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api/user")]
+    public class UserController : ControllerBase
+    {
+        private readonly IMediator _mediator;   
+
+        public UserController (IMediator mediator) => _mediator = mediator;
+
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        /* Currently, This endpoint is only accessible to users with the "Admin" role 
+         * and currently there is no way to assign roles to users, so this endpoint is not accessible to any user at the moment. Same goes for the other email endpoint as well. */
+        public async Task<ActionResult<List<GetUserDto>>> GetAllUsers(CancellationToken cancellationToken)
+        {
+            var users = await _mediator.Send(new GetAllUsersQuery(), cancellationToken);
+            return Ok(users);
+        }
+
+        [HttpGet("{email}")]
+        [Authorize(Roles = "Admin")]
+       
+        public async Task<ActionResult<GetUserDto?>> GetUserByEmail( string email, CancellationToken cancellationToken)
+        {
+            var user = await _mediator.Send(new GetUserByEmailQuery(email), cancellationToken);
+            return user is null ? NotFound() : Ok(user);
+
+
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<ActionResult<GetUserDto>> CreateNewUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
+        {
+            var user = await _mediator.Send(new CreateUserCommand(createUserDto), cancellationToken);
+            return CreatedAtAction(nameof(GetUserByEmail), new { email = user.Email }, user);
+        }
+
+    }
+}
