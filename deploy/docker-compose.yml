@@ -1,0 +1,66 @@
+name: starbord
+
+services:
+  # ---------- Frontend: nginx + React. ENDA tjänsten med port ut mot omvärlden ----------
+  web:
+    image: ${DOCKERHUB_USER}/starbord-web:latest
+    ports:
+      - "80:8080"              # din dator/servern port 80 -> nginx 8080 i containern
+    networks:
+      - frontend               # BARA frontend-nätet => når api, men INTE db
+    depends_on:
+      - api
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true # en process får aldrig skaffa sig fler rättigheter
+    cap_drop: [ALL]            # ta bort alla Linux-"superkrafter" containern inte behöver
+
+  # ---------- API: ingen port ut och inget container_name => kan skalas ----------
+  api:
+    image: ${DOCKERHUB_USER}/starbord-api:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__Key: ${JWT_KEY}
+      Frontend__BaseUrl: ${PUBLIC_URL}
+      Trustpilot__BaseUrl: http://localhost:8080/api/mock/trustpilot
+      Trustpilot__ClientId: mock-client-id
+      Trustpilot__ClientSecret: mock-client-secret
+      Trustpilot__RedirectUri: ${PUBLIC_URL}/api/trustpilot/callback
+    networks:
+      - frontend               # så att web når api
+      - backend                # så att api når db
+    depends_on:
+      db:
+        condition: service_healthy   # starta inte förrän Postgres svarar
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+
+  # ---------- Databas: Postgres med data i en namngiven volume ----------
+  db:
+    image: postgres:17-alpine
+    user: postgres             # kör som icke-root från start
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend                # BARA backend-nätet. Ingen "ports:" => nås inte utifrån
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  frontend:
+  backend:
+    internal: true             # backend-nätet har ingen väg ut mot internet alls
+
+volumes:
+  pgdata:                      # namngiven volume, överlever "docker compose down"

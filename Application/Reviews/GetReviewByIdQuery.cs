@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using StarBord.Data;
 using StarBord.DTOS;
 
